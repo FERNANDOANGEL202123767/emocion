@@ -23,6 +23,19 @@ CORS(app)
 # Cargar las variables del archivo .env
 load_dotenv()
 
+# Configuración de rutas y directorios
+basedir = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(basedir, 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+# Configuración de Flask
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Crear directorio de uploads si no existe
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.chmod(UPLOAD_FOLDER, 0o755)  # Establecer permisos de lectura/escritura
+
 # Obtener las credenciales de Google desde el archivo .env
 GOOGLE_CREDENTIALS = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
 
