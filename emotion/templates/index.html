@@ -3,168 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplicación de Análisis Facial</title>
+    <title>Aplicación de análisis facial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        .upload-area {
-            transition: all 0.3s ease;
-        }
-
-        .upload-area:hover {
-            transform: scale(1.02);
-        }
-
-        .image-preview {
-            transition: opacity 0.3s ease;
-        }
-
-        .loading-spinner {
-            border-top-color: #3498db;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
 </head>
-<body class="bg-gray-900 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-bold text-center mb-8 text-white">Aplicación de Análisis Facial</h1>
-        
-        <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6">
-            <!-- Sección de carga de imágenes -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Subir Nueva Imagen</h2>
+<body class="bg-gray-900 min-h-screen text-gray-100">
+    <div class="container mx-auto px-6 py-12">
+        <h1 class="text-3xl font-extrabold text-center mb-8 text-teal-300">Análisis Facial Inteligente</h1>
+
+        <div class="max-w-3xl mx-auto bg-gray-800 rounded-lg shadow-lg p-8">
+            <!-- File Upload Section -->
+            <div class="mb-8 text-center">
+                <h2 class="text-xl font-semibold mb-6 text-teal-200">Sube una imagen para analizar</h2>
                 <form id="uploadForm" class="space-y-4">
-                    <div class="flex items-center justify-center w-full">
-                        <label class="upload-area flex flex-col w-full h-48 border-4 border-dashed border-gray-600 hover:border-blue-500 hover:bg-gray-700 rounded-lg cursor-pointer relative overflow-hidden">
-                            <div id="uploadPlaceholder" class="flex flex-col items-center justify-center pt-7">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-400 group-hover:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-                                </svg>
-                                <p class="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-300">
-                                    Seleccione una imagen</p>
-                                <p class="text-xs text-gray-500 mt-2">Formatos permitidos: JPG, JPEG, PNG</p>
-                            </div>
-                            <div id="imagePreviewContainer" class="hidden absolute inset-0 bg-gray-800">
-                                <img id="imagePreview" class="w-full h-full object-contain" src="" alt="Preview">
-                            </div>
-                            <input type="file" class="opacity-0 absolute inset-0 w-full h-full" name="file" accept=".jpg,.jpeg,.png" />
-                        </label>
+                    <!-- Selector de archivo -->
+                    <label class="flex flex-col w-full h-40 border-4 border-dashed border-teal-400 hover:border-teal-300 rounded-lg cursor-pointer">
+                        <div class="flex flex-col items-center justify-center py-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-teal-300 group-hover:text-teal-200" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                            </svg>
+                            <p class="mt-2 text-sm text-teal-300 group-hover:text-teal-200">Elige una imagen para subir</p>
+                        </div>
+                        <input type="file" class="opacity-0" name="file" accept=".jpg,.jpeg,.png" />
+                    </label>
+
+                    <!-- Selector de operación -->
+                    <div>
+                        <label for="operation" class="block text-teal-300 text-sm font-medium mb-2">Elige una operación:</label>
+                        <select name="operation" id="operation" class="w-full p-2 bg-gray-700 text-teal-300 border border-teal-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-opacity-75">
+                            <option value="original">Mostrar Original</option>
+                            <option value="flip">Girar Horizontalmente</option>
+                            <option value="brightness">Aumentar Brillo</option>
+                            <option value="flip_vertical">Girar Verticalmente (De Cabeza)</option>
+                        </select>
                     </div>
-                    
-                    <div class="flex space-x-4">
-                        <button type="submit" id="analyzeButton" class="flex-1 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                            Analizar Imagen
-                        </button>
-                        <button type="button" id="clearButton" class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 hidden">
-                            Borrar
-                        </button>
-                    </div>
+
+                    <!-- Botón de envío -->
+                    <button type="submit" class="w-full px-4 py-2 text-gray-900 bg-teal-400 rounded-lg hover:bg-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-opacity-75">
+                        Procesar Imagen
+                    </button>
                 </form>
             </div>
 
-            <!-- Resultados -->
-            <div id="results" class="hidden space-y-4">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Resultados del Análisis</h2>
-                <div class="border border-gray-700 rounded-lg p-4 bg-gray-700">
-                    <img id="resultImage" class="max-w-full h-auto mx-auto rounded-lg shadow-lg" src="" alt="Analysis Result">
+            <!-- Results Section -->
+            <div id="results" class="hidden">
+                <h2 class="text-xl font-semibold mb-4 text-teal-200">Resultados del análisis</h2>
+                <div class="border border-teal-500 rounded-lg p-4 bg-gray-700">
+                    <img id="resultImage" class="max-w-full h-auto mx-auto" src="" alt="Resultado del Análisis">
                 </div>
             </div>
 
-            <!-- Cargando -->
+            <!-- Loading Indicator -->
             <div id="loading" class="hidden">
-                <div class="flex items-center justify-center p-8">
-                    <div class="loading-spinner w-12 h-12 border-4 border-gray-600 rounded-full"></div>
-                    <span class="ml-3 text-gray-400">Procesando imagen...</span>
+                <div class="flex items-center justify-center py-6">
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-300"></div>
                 </div>
             </div>
 
-            <!-- Errores -->
-            <div id="error" class="hidden mt-4 p-4 bg-red-900 border border-red-700 text-red-200 rounded-lg">
+            <!-- Error Display -->
+            <div id="error" class="hidden mt-4 p-4 bg-red-800 border border-red-600 text-red-200 rounded-lg text-center">
             </div>
+
+            <!-- Existing Images Section -->
+            {% if images %}
+            <div class="mt-10">
+                <h2 class="text-xl font-semibold mb-4 text-teal-200">Imágenes cargadas anteriormente</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for image in images %}
+                    <div class="relative group">
+                        <img src="{{ url_for('uploaded_file', filename=image) }}" 
+                             alt="{{ image }}" 
+                             class="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-75 transition-opacity"
+                             onclick="analyzeExisting('{{ image }}')">
+                        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-teal-200 text-xs p-1 rounded-b-lg truncate">
+                            {{ image }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
     <script>
+        // Manejar la subida de nuevas imágenes
+        $('#uploadForm').submit(function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            showLoading();
+
+            $.ajax({
+                url: '/analyze',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    hideLoading();
+                    $('#results').removeClass('hidden');
+                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
+                },
+                error: function (xhr) {
+                    hideLoading();
+                    $('#error')
+                        .removeClass('hidden')
+                        .text(xhr.responseJSON?.error || 'Ocurrió un error');
+                }
+            });
+        });
+
+        // Manejar el análisis de imágenes existentes
+        function analyzeExisting(filename) {
+            showLoading();
+
+            const formData = new FormData();
+            formData.append('existing_file', filename);
+            formData.append('operation', $('#operation').val()); // Usar la operación seleccionada
+
+            $.ajax({
+                url: '/analyze',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    hideLoading();
+                    $('#results').removeClass('hidden');
+                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
+                },
+                error: function (xhr) {
+                    hideLoading();
+                    $('#error')
+                        .removeClass('hidden')
+                        .text(xhr.responseJSON?.error || 'Ocurrió un error');
+                }
+            });
+        }
+
+        // Mostrar/ocultar la animación de carga
         function showLoading() {
             $('#loading').removeClass('hidden');
-            $('#error').addClass('hidden');
-            $('#results').addClass('hidden');
-            $('#analyzeButton').prop('disabled', true);
+            $('#results, #error').addClass('hidden');
         }
 
         function hideLoading() {
             $('#loading').addClass('hidden');
-            $('#analyzeButton').prop('disabled', false);
         }
-
-        $(document).ready(function() {
-            $('input[type="file"]').change(function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        $('#imagePreview').attr('src', e.target.result);
-                        $('#uploadPlaceholder').addClass('hidden');
-                        $('#imagePreviewContainer').removeClass('hidden');
-                        $('#clearButton').removeClass('hidden');
-                        $('#analyzeButton').prop('disabled', false);
-                        $('#error').addClass('hidden');
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    $('#analyzeButton').prop('disabled', true);
-                }
-            });
-
-            $('#clearButton').click(function() {
-                $('input[type="file"]').val('');
-                $('#imagePreview').attr('src', '');
-                $('#uploadPlaceholder').removeClass('hidden');
-                $('#imagePreviewContainer').addClass('hidden');
-                $('#clearButton').addClass('hidden');
-                $('#analyzeButton').prop('disabled', true);
-                $('#error').addClass('hidden');
-                $('#results').addClass('hidden');
-            });
-
-            $('#uploadForm').on('submit', function(e) {
-                e.preventDefault();
-                const fileInput = $('input[type="file"]')[0];
-                if (!fileInput.files[0]) {
-                    $('#error')
-                        .removeClass('hidden')
-                        .text('Por favor seleccione una imagen primero');
-                    return;
-                }
-                
-                var formData = new FormData(this);
-                showLoading();
-                
-                $.ajax({
-                    url: '/analyze',
-                    type: 'POST',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function(response) {
-                        hideLoading();
-                        $('#results').removeClass('hidden');
-                        $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
-                    },
-                    error: function(xhr) {
-                        hideLoading();
-                        $('#error')
-                            .removeClass('hidden')
-                            .text(xhr.responseJSON?.error || 'Ha ocurrido un error al procesar la imagen');
-                    }
-                });
-            });
-        });
     </script>
 </body>
 </html>
