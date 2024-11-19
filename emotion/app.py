@@ -1,6 +1,6 @@
+import os
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
-import os
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -16,8 +16,6 @@ from flask_cors import CORS
 import json
 import logging
 from dotenv import load_dotenv
-import copy
-import random
 
 app = Flask(__name__)
 CORS(app)
@@ -33,23 +31,47 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Create upload directory
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.chmod(UPLOAD_FOLDER, 0o755)
 
-# Google Drive Configuration
+# Google Drive credentials
 GOOGLE_CREDENTIALS = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-FOLDER_ID = '12CKEe1qAXXcUgQj0Xj2IRZbvbysE00aU'
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+FOLDER_ID = '12CKEe1qAXXcUgQj0Xj2IRZbvbysE00aU'
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def analyze_face(image_path, return_landmarks=False):
-    """Analyze facial landmarks with enhanced visualization."""
+def obtener_servicio_drive():
+    creds = service_account.Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+    service = build('drive', 'v3', credentials=creds)
+    return service
+
+def check_file_exists_in_drive(service, filename, folder_id):
+    """Check if file exists in Google Drive folder"""
+    try:
+        query = f"name = '{filename}' and '{folder_id}' in parents and trashed = false"
+        results = service.files().list(
+            q=query,
+            spaces='drive',
+            fields='files(id, name)'
+        ).execute()
+        
+        files = results.get('files', [])
+        return files[0]['id'] if files else None
+        
+    except Exception as e:
+        logger.error(f"Error checking file existence in Drive: {str(e)}")
+        return None
+
+def analyze_face(image_path):
+    """Analyze facial landmarks in the image"""
     try:
         # Initialize MediaPipe Face Mesh
         mp_face_mesh = mp.solutions.face_mesh
@@ -75,44 +97,35 @@ def analyze_face(image_path, return_landmarks=False):
         if not results.multi_face_landmarks:
             raise Exception("No face detected in the image")
 
-        # Key points selection
-        key_points = [33, 133, 362, 263, 1, 61, 291, 199, 
-                      94, 0, 24, 130, 359, 288, 378]
+        # Select key points
+        key_points = [70, 55, 285, 300, 33, 468, 133, 362, 473, 263, 4, 185, 0, 306, 17]
         
+        # Verify that all key points exist in the detection
         landmarks = results.multi_face_landmarks[0].landmark
+        if max(key_points) >= len(landmarks):
+            raise Exception("Could not detect some facial landmarks")
+
         height, width = gray_image.shape
+        
+        # Create a new figure for each analysis
+        plt.clf()
+        fig = plt.figure(figsize=(8, 8))
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
-        # Create plots for different transformations
-        transformations = {
-            'Original': image,
-            'Horizontal Flip': cv2.flip(image, 1),
-            'Vertical Flip': cv2.flip(image, 0),
-            'Brightness Increased': cv2.convertScaleAbs(image, alpha=1.5, beta=30)
-        }
+        # Plot facial landmarks with better visibility
+        for point_idx in key_points:
+            try:
+                landmark = landmarks[point_idx]
+                x = int(landmark.x * width)
+                y = int(landmark.y * height)
+                plt.plot(x, y, 'r*', markersize=10)
+            except IndexError as e:
+                logger.warning(f"Error processing point {point_idx}: {str(e)}")
+                continue
 
-        fig, axs = plt.subplots(2, 2, figsize=(16, 16))
-        axs = axs.ravel()
-
-        for idx, (name, transformed_image) in enumerate(transformations.items()):
-            # Convert to grayscale for visualization
-            transformed_gray = cv2.cvtColor(transformed_image, cv2.COLOR_BGR2GRAY)
-            axs[idx].imshow(transformed_gray, cmap='gray')
-            axs[idx].set_title(name)
-            
-            # Plot landmarks
-            for point_idx in key_points:
-                try:
-                    landmark = landmarks[point_idx]
-                    x = int(landmark.x * width)
-                    y = int(landmark.y * height)
-                    axs[idx].plot(x, y, 'rx')
-                except IndexError as e:
-                    logger.warning(f"Processing error for point {point_idx}: {str(e)}")
-                    continue
-            
-            axs[idx].axis('off')
-
-        plt.tight_layout()
+        # Improve plot aesthetics
+        plt.title('Facial Landmarks Detection')
+        plt.axis('off')
 
         # Save plot to memory
         buf = BytesIO()
@@ -122,21 +135,6 @@ def analyze_face(image_path, return_landmarks=False):
 
         # Convert to base64
         image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-
-        if return_landmarks:
-            # Extract landmark coordinates
-            landmark_data = []
-            for point_idx in key_points:
-                landmark = landmarks[point_idx]
-                landmark_data.append({
-                    'index': point_idx,
-                    'x': landmark.x,
-                    'y': landmark.y,
-                    'z': landmark.z
-                })
-            
-            return image_base64, landmark_data
-        
         return image_base64
 
     except Exception as e:
@@ -164,7 +162,7 @@ def analyze():
     try:
         filepath = None
         
-        # Handle file upload
+        # Handle new file upload
         if 'file' in request.files:
             file = request.files['file']
             if file.filename == '':
@@ -177,20 +175,54 @@ def analyze():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
+            
+            # Check if file exists in Drive
+            service = obtener_servicio_drive()
+            existing_file_id = check_file_exists_in_drive(service, filename, FOLDER_ID)
+            
+            if existing_file_id:
+                drive_id = existing_file_id
+            else:
+                # Upload only if it doesn't exist
+                with open(filepath, 'rb') as f:
+                    file_data = f.read()
+                
+                archivo_drive = MediaIoBaseUpload(BytesIO(file_data), mimetype='image/png')
+                archivo_metadata = {
+                    'name': filename,
+                    'mimeType': 'image/png',
+                    'parents': [FOLDER_ID]
+                }
+                archivo_drive_subido = service.files().create(
+                    body=archivo_metadata, 
+                    media_body=archivo_drive
+                ).execute()
+                drive_id = archivo_drive_subido.get('id')
+            
+        # Handle existing file analysis
+        elif 'existing_file' in request.form:
+            filename = request.form['existing_file']
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if not os.path.exists(filepath):
+                return jsonify({'error': 'File not found'}), 404
+            drive_id = None
+        else:
+            return jsonify({'error': 'No file provided'}), 400
 
         # Analyze the image
         result_image = analyze_face(filepath)
 
         return jsonify({
             'success': True,
-            'image': result_image
+            'image': result_image,
+            'drive_id': drive_id
         })
 
     except Exception as e:
         logger.error(f"Error in /analyze: {str(e)}")
         return jsonify({
             'error': str(e),
-            'details': 'Could not process image. Ensure the image contains a clearly visible face.'
+            'details': 'Could not process the image. Ensure the image contains a clearly visible face.'
         }), 500
 
 @app.route('/static/uploads/<filename>')
