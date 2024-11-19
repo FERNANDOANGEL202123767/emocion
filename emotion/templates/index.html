@@ -3,217 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplicación de análisis facial</title>
+    <title>Análisis Avanzado de Landmarks Faciales</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         .upload-area {
             transition: all 0.3s ease;
+            border-style: dashed;
         }
-        
         .upload-area:hover {
             transform: scale(1.02);
+            border-color: #3B82F6;
         }
-
-        .image-preview {
-            transition: opacity 0.3s ease;
-        }
-
         .loading-spinner {
-            border-top-color: #3498db;
+            border-top-color: #3B82F6;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="bg-gray-900 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-bold text-center mb-8 text-white">Aplicación de análisis facial</h1>
-        
-        <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6">
-            <!-- File Upload Section -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Subir nueva imagen</h2>
-                <form id="uploadForm" class="space-y-4">
-                    <div class="flex items-center justify-center w-full">
-                        <label class="upload-area flex flex-col w-full h-48 border-4 border-dashed border-gray-600 hover:border-blue-500 hover:bg-gray-700 rounded-lg cursor-pointer relative overflow-hidden">
-                            <div id="uploadPlaceholder" class="flex flex-col items-center justify-center pt-7">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-400 group-hover:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-                                </svg>
-                                <p class="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-300">
-                                    Seleccione una imagen</p>
-                                <p class="text-xs text-gray-500 mt-2">Formatos permitidos: JPG, JPEG, PNG</p>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen flex items-center justify-center py-12">
+    <div class="container mx-auto px-4 max-w-4xl">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
+            <h1 class="text-4xl font-extrabold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+                Análisis Inteligente de Landmarks Faciales
+            </h1>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Upload Section -->
+                <div>
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-semibold mb-4 text-gray-200">Subir Imagen</h2>
+                        <form id="uploadForm" class="space-y-4">
+                            <div class="upload-area border-4 border-gray-600 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-300">
+                                <input 
+                                    type="file" 
+                                    id="imageUpload" 
+                                    accept=".jpg,.jpeg,.png" 
+                                    class="hidden" 
+                                />
+                                <label for="imageUpload" class="cursor-pointer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-gray-400">Selecciona una imagen facial</p>
+                                    <p class="text-xs text-gray-500 mt-2">Formatos: JPG, PNG (máx 16MB)</p>
+                                </label>
                             </div>
-                            <div id="imagePreviewContainer" class="hidden absolute inset-0 bg-gray-800">
-                                <img id="imagePreview" class="w-full h-full object-contain" src="" alt="Preview">
+                            
+                            <div id="imagePreview" class="mt-4 hidden">
+                                <img class="rounded-xl max-h-64 mx-auto object-cover" />
                             </div>
-                            <input type="file" class="opacity-0 absolute inset-0 w-full h-full" name="file" accept=".jpg,.jpeg,.png" />
-                        </label>
+
+                            <div class="flex space-x-4">
+                                <button 
+                                    type="submit" 
+                                    id="analyzeBtn"
+                                    class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                    disabled
+                                >
+                                    Analizar Imagen
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    
-                    <div class="flex space-x-4">
-                        <button type="submit" id="analyzeButton" class="flex-1 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                            Analizar imagen
-                        </button>
-                        <button type="button" id="clearButton" class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 hidden">
-                            Borrar
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Results Section -->
-            <div id="results" class="hidden space-y-4">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Resultados del análisis</h2>
-                <div class="border border-gray-700 rounded-lg p-4 bg-gray-700">
-                    <img id="resultImage" class="max-w-full h-auto mx-auto rounded-lg shadow-lg" src="" alt="Analysis Result">
                 </div>
-            </div>
 
-            <!-- Loading Indicator -->
-            <div id="loading" class="hidden">
-                <div class="flex items-center justify-center p-8">
-                    <div class="loading-spinner w-12 h-12 border-4 border-gray-600 rounded-full"></div>
-                    <span class="ml-3 text-gray-400">Procesando imagen...</span>
-                </div>
-            </div>
-
-            <!-- Error Display -->
-            <div id="error" class="hidden mt-4 p-4 bg-red-900 border border-red-700 text-red-200 rounded-lg">
-            </div>
-
-            <!-- Existing Images Section -->
-            {% if images %}
-            <div class="mt-8">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Imágenes analizadas previamente</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {% for image in images %}
-                    <div class="relative group">
-                        <img src="{{ url_for('static', filename='uploads/' + image) }}" 
-                             alt="{{ image }}" 
-                             class="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-75 transition-opacity"
-                             onclick="analyzeExisting('{{ image }}')">
-                        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-gray-200 text-xs p-1 rounded-b-lg truncate">
-                            {{ image }}
+                <!-- Result Section -->
+                <div>
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-200">Resultados del Análisis</h2>
+                    <div id="resultContainer" class="bg-gray-700 rounded-xl p-4 min-h-[400px] flex items-center justify-center">
+                        <div id="loadingSpinner" class="hidden text-center">
+                            <div class="spinner mx-auto mb-4"></div>
+                            <p class="text-gray-300">Procesando imagen...</p>
                         </div>
+                        
+                        <div id="analysisResult" class="hidden w-full">
+                            <img id="resultImage" class="rounded-xl w-full" />
+                        </div>
+                        
+                        <div id="errorMessage" class="hidden text-red-400 text-center"></div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
-            {% endif %}
         </div>
     </div>
 
     <script>
-        function showLoading() {
-            $('#loading').removeClass('hidden');
-            $('#error').addClass('hidden');
-            $('#results').addClass('hidden');
-            $('#analyzeButton').prop('disabled', true);
-        }
-
-        function hideLoading() {
-            $('#loading').addClass('hidden');
-            $('#analyzeButton').prop('disabled', false);
-        }
-
-        $(document).ready(function() {
-            // Image preview functionality
-            $('input[type="file"]').change(function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        $('#imagePreview').attr('src', e.target.result);
-                        $('#uploadPlaceholder').addClass('hidden');
-                        $('#imagePreviewContainer').removeClass('hidden');
-                        $('#clearButton').removeClass('hidden');
-                        $('#analyzeButton').prop('disabled', false);
-                        $('#error').addClass('hidden');
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    $('#analyzeButton').prop('disabled', true);
-                }
-            });
-
-            // Clear button functionality
-            $('#clearButton').click(function() {
-                $('input[type="file"]').val('');
-                $('#imagePreview').attr('src', '');
-                $('#uploadPlaceholder').removeClass('hidden');
-                $('#imagePreviewContainer').addClass('hidden');
-                $('#clearButton').addClass('hidden');
-                $('#analyzeButton').prop('disabled', true);
-                $('#error').addClass('hidden');
-                $('#results').addClass('hidden');
-            });
-
-            $('#uploadForm').on('submit', function(e) {
-                e.preventDefault();
-                
-                const fileInput = $('input[type="file"]')[0];
-                if (!fileInput.files[0]) {
-                    $('#error')
-                        .removeClass('hidden')
-                        .text('Por favor seleccione una imagen primero');
-                    return;
-                }
-                
-                var formData = new FormData(this);
-                showLoading();
-                
-                $.ajax({
-                    url: '/analyze',
-                    type: 'POST',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function(response) {
-                        hideLoading();
-                        $('#results').removeClass('hidden');
-                        $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
-                    },
-                    error: function(xhr) {
-                        hideLoading();
-                        $('#error')
-                            .removeClass('hidden')
-                            .text(xhr.responseJSON?.error || 'Ha ocurrido un error al procesar la imagen');
-                    }
-                });
-            });
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewContainer = document.getElementById('imagePreview');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const img = previewContainer.querySelector('img');
+                    img.src = evt.target.result;
+                    previewContainer.classList.remove('hidden');
+                    analyzeBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
         });
 
-        function analyzeExisting(filename) {
-            showLoading();
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            const formData = new FormData();
-            formData.append('existing_file', filename);
+            const formData = new FormData(this);
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const analysisResult = document.getElementById('analysisResult');
+            const errorMessage = document.getElementById('errorMessage');
+            const resultImage = document.getElementById('resultImage');
             
-            $.ajax({
-                url: '/analyze',
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function(response) {
-                    hideLoading();
-                    $('#results').removeClass('hidden');
-                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
-                },
-                error: function(xhr) {
-                    hideLoading();
-                    $('#error')
-                        .removeClass('hidden')
-                        .text(xhr.responseJSON?.error || 'Ha ocurrido un error al procesar la imagen');
-                }
+            loadingSpinner.classList.remove('hidden');
+            analysisResult.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+
+            axios.post('/analyze', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            .then(response => {
+                loadingSpinner.classList.add('hidden');
+                resultImage.src = `data:image/png;base64,${response.data.image}`;
+                analysisResult.classList.remove('hidden');
+            })
+            .catch(error => {
+                loadingSpinner.classList.add('hidden');
+                errorMessage.textContent = error.response?.data?.details || 'Error procesando imagen';
+                errorMessage.classList.remove('hidden');
             });
-        }
+        });
     </script>
 </body>
 </html>
