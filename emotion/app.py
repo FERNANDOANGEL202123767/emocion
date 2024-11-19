@@ -12,7 +12,7 @@ from pyngrok import ngrok
 from io import BytesIO
 
 # Crear la aplicación Flask
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Configurar carpeta de subida
 UPLOAD_FOLDER = 'static/uploads'
@@ -156,7 +156,7 @@ def uploaded_file(filename):
     """Ruta para servir archivos subidos."""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     try:
         # Iniciar ngrok y Flask
         ngrok_tunnel = ngrok.connect(5001)
